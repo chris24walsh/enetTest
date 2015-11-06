@@ -9,10 +9,11 @@
 bool useServer = false;
 ENetHost * host; //This machine
 ENetPeer * peer; //Remote machine
+ENetEvent  event; //Current event thread
 
 //Functions
 void connectServer();
-void sendData();
+void sendData(char*);
 int receiveData();
 
 int _tmain(int argc, _TCHAR* argv[])
@@ -45,6 +46,8 @@ int _tmain(int argc, _TCHAR* argv[])
 					 "An error occurred while trying to create an ENet server host.\n");
 			exit (EXIT_FAILURE);
 		}
+
+		std::cout << "This machine is the server\n";
 	}
 
 	//Create client
@@ -61,22 +64,27 @@ int _tmain(int argc, _TCHAR* argv[])
 			exit (EXIT_FAILURE);
 		}
 
+		std::cout << "This machine is the client\n";
+
 		//Connect to the server machine
 		connectServer();
 
 		//Send some data
-		sendData();
+		sendData("Hello there");
 	}
-	
-
-	if (useServer) std::cout << "This machine is the server\n";
-	else std::cout << "This machine is the client\n";
+	 
 	//Program loop
 	while(true) {
 		//std::cout << "waiting for data...\n";
 		//_getch();
 		int success = receiveData();
-		if (success) break;
+		if (success) {
+			std::cout << "\nRemote: " << event.packet->data;
+			std::cout << "\nLocal: ";
+			char* message = "";
+			std::cin >> message;
+			sendData(message);
+		}
 	}
 
 	//Exiting program
@@ -121,12 +129,12 @@ void connectServer() {
 }
 
 //Sending data
-void sendData() {
+void sendData(char* message) {
 	/* Create a reliable packet of size 7 containing "packet\0" */
-	ENetPacket * packet = enet_packet_create ("packet", strlen ("packet") + 1, ENET_PACKET_FLAG_RELIABLE);
+	ENetPacket * packet = enet_packet_create (message, strlen (message) + 1, ENET_PACKET_FLAG_RELIABLE);
 	/* Extend the packet so and append the string "foo", so it now */
 	/* contains "packetfoo\0"                                      */
-	enet_packet_resize (packet, strlen ("packetfoo") + 1);
+	//enet_packet_resize (packet, strlen ("packetfoo") + 1);
 	//strcpy (& packet -> data [strlen ("packet")], "foo");
 	/* Send the packet to the peer over channel id 0. */
 	/* One could also broadcast the packet by         */
@@ -138,9 +146,9 @@ void sendData() {
 
 //Receiving data
 int receiveData() {
-	ENetEvent event;
+	//ENetEvent event;
 	// Non-blocking event poll
-	while (enet_host_service (host, & event, 0) > 0)
+	while (enet_host_service (host, &event, 0) > 0)
 	{
 		switch (event.type)
 		{
@@ -150,7 +158,7 @@ int receiveData() {
 					event.peer -> address.port);
 			/* Store any relevant client information here. */
 			event.peer -> data = "Client information";
-			return 0;
+			//return 0;
 			break;
 		case ENET_EVENT_TYPE_RECEIVE:
 			printf ("A packet of length %u containing %s was received from %s on channel %u.\n",
@@ -161,13 +169,13 @@ int receiveData() {
 			/* Clean up the packet now that we're done using it. */
 			enet_packet_destroy (event.packet);
 			return 1;
-			break;
+			//break;
        
 		case ENET_EVENT_TYPE_DISCONNECT:
 			printf ("%s disconnected.\n", event.peer -> data);
 			/* Reset the peer's client information. */
 			event.peer -> data = NULL;
-			return 0;
 		}
+		return 0;
 	}
 }
