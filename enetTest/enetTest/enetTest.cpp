@@ -6,7 +6,7 @@
 #include <conio.h>
 #include <enet\enet.h>
 
-bool useServer = true;
+bool useServer = false;
 ENetHost * host; //This machine
 ENetPeer * peer; //Remote machine
 
@@ -68,6 +68,9 @@ int _tmain(int argc, _TCHAR* argv[])
 		sendData();
 	}
 	
+
+	if (useServer) std::cout << "This machine is the server";
+	else std::cout << "This machine is the client";
 	//Program loop
 	while(true) {
 		std::cout << "waiting for data...\n";
