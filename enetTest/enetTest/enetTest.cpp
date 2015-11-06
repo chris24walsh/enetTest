@@ -69,12 +69,12 @@ int _tmain(int argc, _TCHAR* argv[])
 	}
 	
 
-	if (useServer) std::cout << "This machine is the server";
-	else std::cout << "This machine is the client";
+	if (useServer) std::cout << "This machine is the server\n";
+	else std::cout << "This machine is the client\n";
 	//Program loop
 	while(true) {
-		std::cout << "waiting for data...\n";
-		_getch();
+		//std::cout << "waiting for data...\n";
+		//_getch();
 		int success = receiveData();
 		if (success) break;
 	}
@@ -104,7 +104,7 @@ void connectServer() {
 	   exit (EXIT_FAILURE);
 	}
 	/* Wait up to 5 seconds for the connection attempt to succeed. */
-	if (enet_host_service (host, & event, 5000) > 0 &&
+	if (enet_host_service (host, & event, 7000) > 0 &&
 		event.type == ENET_EVENT_TYPE_CONNECT)
 	{
 		puts ("Connection to some.server.net:1234 succeeded.");
