@@ -8,8 +8,11 @@
 #include <string.h>
 #include <sstream>
 
+using namespace std;
+
 bool useServer = true;
-ENetHost * host; //This machine
+ENetHost * server; //This machine
+ENetHost * client; //This machine
 ENetPeer * peer; //Remote machine
 ENetEvent  event; //Current event thread
 int choice;
@@ -20,13 +23,14 @@ int localServerPort = 1234;
 const char* remoteServerIp = "192.168.8.100";
 int remoteServerPort = 1235;
 
+string sentMessage;
+string receivedMessage;
+
 
 //Functions
 void connectServer();
 void sendData(std::string);
 int receiveData();
-
-using namespace std;
 
 int _tmain(int argc, _TCHAR* argv[])
 {
@@ -39,7 +43,8 @@ int _tmain(int argc, _TCHAR* argv[])
     atexit (enet_deinitialize); //deinitialise upon program exit
 
 	//Create server
-	if (useServer) {
+	//if (useServer) {
+	{
 		ENetAddress address;
 		/* Bind the server to the default localhost.     */
 		/* A specific host address can be specified by   */
@@ -47,12 +52,12 @@ int _tmain(int argc, _TCHAR* argv[])
 		address.host = ENET_HOST_ANY;
 		/* Bind the server to port 1234. */
 		address.port = localServerPort;
-		host = enet_host_create (& address /* the address to bind the server host to */, 
+		server = enet_host_create (& address /* the address to bind the server host to */, 
 									 32      /* allow up to 32 clients and/or outgoing connections */,
 									  2      /* allow up to 2 channels to be used, 0 and 1 */,
 									  0      /* assume any amount of incoming bandwidth */,
 									  0      /* assume any amount of outgoing bandwidth */);
-		if (host == NULL)
+		if (server == NULL)
 		{
 			fprintf (stderr, 
 					 "An error occurred while trying to create an ENet server host.\n");
@@ -67,13 +72,14 @@ int _tmain(int argc, _TCHAR* argv[])
 	}
 
 	//Create client to connect to other server
-	if (useServer) {
-		host = enet_host_create (NULL /* create a client host */,
-					1 /* only allow 1 outgoing connection */,
+	//if (useServer) {
+	{
+		client = enet_host_create (NULL /* create a client host */,
+					2 /* only allow 1 outgoing connection */,
 					2 /* allow up 2 channels to be used, 0 and 1 */,
 					0	/* 57600 / 8 /* 56K modem with 56 Kbps downstream bandwidth */,
 					0	/* 14400 / 8 /* 56K modem with 14 Kbps upstream bandwidth */);
-		if (host == NULL)
+		if (client == NULL)
 		{
 			fprintf (stderr, 
 					 "An error occurred while trying to create an ENet client host.\n");
@@ -87,25 +93,23 @@ int _tmain(int argc, _TCHAR* argv[])
 			connectServer();
 			choice = 0;
 		}
+		else if (choice==2) cout << "Waiting for client to connect..." << endl;
 	}
 	 
 	//Program loop
 	while(true) {
 		int success = receiveData();
 		if (success==1) { //Connection received from client
-			cout << "Remote client has connected" << endl;
 			if (choice==2) {
+				//setUpClient();
 				connectServer();
 				choice = 0;
 			}
 		}
-		if (success==2) { //Received message
-			cout << "Remote client has sent some data" << endl;
-		}
 	}
 
 	//Exiting program
-	enet_host_destroy(host);
+	enet_host_destroy(client);
 	
 	cout << "Exiting...";
 	_getch();
@@ -121,7 +125,7 @@ void connectServer() {
 	enet_address_set_host (& address, remoteServerIp);
 	address.port = remoteServerPort;
 	/* Initiate the connection, allocating the two channels 0 and 1. */
-	peer = enet_host_connect (host, & address, 2, 0);    
+	peer = enet_host_connect (client, & address, 2, 0);    
 	if (peer == NULL)
 	{
 	   fprintf (stderr, 
@@ -129,7 +133,7 @@ void connectServer() {
 	   exit (EXIT_FAILURE);
 	}
 	/* Wait up to 5 seconds for the connection attempt to succeed. */
-	if (enet_host_service (host, & event, 7000) > 0 &&
+	if (enet_host_service (client, & event, 7000) > 0 &&
 		event.type == ENET_EVENT_TYPE_CONNECT)
 	{
 		cout << "Connection succeeded to " << remoteServerIp << " on port " << remoteServerPort;
@@ -157,14 +161,14 @@ void sendData(std::string message) {
 	/* enet_host_broadcast (host, 0, packet);         */
 	enet_peer_send (peer, 0, packet);
 	/* One could just use enet_host_service() instead. */
-	enet_host_flush (host);
+	enet_host_flush (client);
 }
 
 //Receiving data
 int receiveData() {
 	//ENetEvent event;
 	// Non-blocking event poll
-	while (enet_host_service (host, &event, 0) > 0)
+	while (enet_host_service (server, &event, 0) > 0)
 	{
 		switch (event.type)
 		{
@@ -177,11 +181,12 @@ int receiveData() {
 			return 1;
 			break;
 		case ENET_EVENT_TYPE_RECEIVE:
-			printf ("A packet of length %u containing %s was received from %s on channel %u.\n",
+			/*printf ("A packet of length %u containing %s was received from %s on channel %u.\n",
 					event.packet -> dataLength,
 					event.packet -> data,
 					event.peer -> data,
-					event.channelID);
+					event.channelID);*/
+			printf("\n*%s\n",event.packet->data);
 			/* Clean up the packet now that we're done using it. */
 			enet_packet_destroy (event.packet);
 			return 2;
@@ -194,5 +199,19 @@ int receiveData() {
 			return 3;
 		}
 		return 0;
+	}
+}
+
+void setUpClient() {
+	client = enet_host_create (NULL /* create a client host */,
+				2 /* only allow 1 outgoing connection */,
+				2 /* allow up 2 channels to be used, 0 and 1 */,
+				0	/* 57600 / 8 /* 56K modem with 56 Kbps downstream bandwidth */,
+				0	/* 14400 / 8 /* 56K modem with 14 Kbps upstream bandwidth */);
+	if (client == NULL)
+	{
+		fprintf (stderr, 
+					"An error occurred while trying to create an ENet client host.\n");
+		exit (EXIT_FAILURE);
 	}
 }
