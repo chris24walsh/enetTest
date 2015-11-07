@@ -14,10 +14,18 @@ ENetPeer * peer; //Remote machine
 ENetEvent  event; //Current event thread
 
 
+const char* localServerIp = "192.168.8.101";
+int localServerPort = 1234;
+const char* remoteServerIp = "192.168.8.101";
+int remoteServerPort = 1234;
+
+
 //Functions
 void connectServer();
 void sendData(std::string);
 int receiveData();
+
+using namespace std;
 
 int _tmain(int argc, _TCHAR* argv[])
 {
@@ -37,7 +45,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		/* enet_address_set_host (& address, "x.x.x.x"); */
 		address.host = ENET_HOST_ANY;
 		/* Bind the server to port 1234. */
-		address.port = 1234;
+		address.port = localServerPort;
 		host = enet_host_create (& address /* the address to bind the server host to */, 
 									 32      /* allow up to 32 clients and/or outgoing connections */,
 									  2      /* allow up to 2 channels to be used, 0 and 1 */,
@@ -50,11 +58,15 @@ int _tmain(int argc, _TCHAR* argv[])
 			exit (EXIT_FAILURE);
 		}
 
-		std::cout << "This machine is the server.\nWaiting for client handshake...\n";
+		cout << "Server set up on port " << localServerPort << endl;
+		//while(true) {
+		//	int success = receiveData();
+		//	if (success==1) break; //If connected
+		//}
 	}
 
-	//Create client
-	else {
+	//Create client to connect to other server
+	if (useServer) {
 		host = enet_host_create (NULL /* create a client host */,
 					1 /* only allow 1 outgoing connection */,
 					2 /* allow up 2 channels to be used, 0 and 1 */,
@@ -67,35 +79,27 @@ int _tmain(int argc, _TCHAR* argv[])
 			exit (EXIT_FAILURE);
 		}
 
-		std::cout << "This machine is the client\n";
-
-		//Connect to the server machine
+		cout << "Press any key to begin connecting to remote server" << endl;
+		_getch();
+		cout << "Connecting to remote server" << endl;
 		connectServer();
-
-		//Send some data
-		sendData("Hello there");
-
-		std::cout << "Sent handshake\n";
 	}
 	 
 	//Program loop
 	while(true) {
-		//std::cout << "waiting for data...\n";
-		//_getch();
 		int success = receiveData();
-		if (success) {
-			std::cout << "\nRemote: " << event.packet->data;
-			std::cout << "\nLocal: ";
-			std::string message;
-			std::getline(std::cin,message);
-			sendData(message);
+		if (success==1) { //Connection received from client
+			cout << "Remote client has connected" << endl;
+		}
+		if (success==2) { //Received message
+			cout << "Remote client has sent some data" << endl;
 		}
 	}
 
 	//Exiting program
 	enet_host_destroy(host);
 	
-	std::cout << "Exiting...";
+	cout << "Exiting...";
 	_getch();
 	return 0;
 }
@@ -106,8 +110,8 @@ void connectServer() {
 	ENetEvent event;
 	//ENetPeer *peer;
 	/* Connect to some.server.net:1234. */
-	enet_address_set_host (& address, "192.168.8.102");
-	address.port = 1234;
+	enet_address_set_host (& address, remoteServerIp);
+	address.port = remoteServerPort;
 	/* Initiate the connection, allocating the two channels 0 and 1. */
 	peer = enet_host_connect (host, & address, 2, 0);    
 	if (peer == NULL)
@@ -120,8 +124,7 @@ void connectServer() {
 	if (enet_host_service (host, & event, 7000) > 0 &&
 		event.type == ENET_EVENT_TYPE_CONNECT)
 	{
-		puts ("Connection to some.server.net:1234 succeeded.");
-		//
+		cout << "Connection succeeded to " << remoteServerIp << " on port " << remoteServerPort;
 	}
 	else
 	{
@@ -129,7 +132,7 @@ void connectServer() {
 		/* received. Reset the peer in the event the 5 seconds   */
 		/* had run out without any significant event.            */
 		enet_peer_reset (peer);
-		puts ("Connection to some.server.net:1234 failed.");
+		cout << "Connection failed to " << remoteServerIp << " on port " << remoteServerPort;
 	}
 }
 
@@ -163,7 +166,7 @@ int receiveData() {
 					event.peer -> address.port);
 			/* Store any relevant client information here. */
 			event.peer -> data = "Client information";
-			//return 0;
+			return 1;
 			break;
 		case ENET_EVENT_TYPE_RECEIVE:
 			printf ("A packet of length %u containing %s was received from %s on channel %u.\n",
@@ -173,13 +176,14 @@ int receiveData() {
 					event.channelID);
 			/* Clean up the packet now that we're done using it. */
 			enet_packet_destroy (event.packet);
-			return 1;
+			return 2;
 			//break;
        
 		case ENET_EVENT_TYPE_DISCONNECT:
 			printf ("%s disconnected.\n", event.peer -> data);
 			/* Reset the peer's client information. */
 			event.peer -> data = NULL;
+			return 3;
 		}
 		return 0;
 	}
