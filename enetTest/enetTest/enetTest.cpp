@@ -12,12 +12,13 @@ bool useServer = true;
 ENetHost * host; //This machine
 ENetPeer * peer; //Remote machine
 ENetEvent  event; //Current event thread
+int choice;
 
 
-const char* localServerIp = "192.168.8.101";
+const char* localServerIp = "192.168.8.102";
 int localServerPort = 1234;
-const char* remoteServerIp = "192.168.8.101";
-int remoteServerPort = 1234;
+const char* remoteServerIp = "192.168.8.100";
+int remoteServerPort = 1235;
 
 
 //Functions
@@ -58,7 +59,7 @@ int _tmain(int argc, _TCHAR* argv[])
 			exit (EXIT_FAILURE);
 		}
 
-		cout << "Server set up on port " << localServerPort << endl;
+		cout << "Server set up on IP " << localServerIp << " and on port " << localServerPort << endl;
 		//while(true) {
 		//	int success = receiveData();
 		//	if (success==1) break; //If connected
@@ -79,10 +80,13 @@ int _tmain(int argc, _TCHAR* argv[])
 			exit (EXIT_FAILURE);
 		}
 
-		cout << "Press any key to begin connecting to remote server" << endl;
-		_getch();
-		cout << "Connecting to remote server" << endl;
-		connectServer();
+		cout << "Enter 1 to connect to remote server, or 2 to wait for client connection" << endl;
+		cin >> choice;
+		if (choice==1) {
+			cout << "Connecting to remote server" << endl;
+			connectServer();
+			choice = 0;
+		}
 	}
 	 
 	//Program loop
@@ -90,6 +94,10 @@ int _tmain(int argc, _TCHAR* argv[])
 		int success = receiveData();
 		if (success==1) { //Connection received from client
 			cout << "Remote client has connected" << endl;
+			if (choice==2) {
+				connectServer();
+				choice = 0;
+			}
 		}
 		if (success==2) { //Received message
 			cout << "Remote client has sent some data" << endl;
