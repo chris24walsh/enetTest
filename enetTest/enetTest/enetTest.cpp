@@ -5,15 +5,18 @@
 #include <iostream>
 #include <conio.h>
 #include <enet\enet.h>
+#include <string.h>
+#include <sstream>
 
-bool useServer = false;
+bool useServer = true;
 ENetHost * host; //This machine
 ENetPeer * peer; //Remote machine
 ENetEvent  event; //Current event thread
 
+
 //Functions
 void connectServer();
-void sendData(char*);
+void sendData(std::string);
 int receiveData();
 
 int _tmain(int argc, _TCHAR* argv[])
@@ -47,7 +50,7 @@ int _tmain(int argc, _TCHAR* argv[])
 			exit (EXIT_FAILURE);
 		}
 
-		std::cout << "This machine is the server\n";
+		std::cout << "This machine is the server.\nWaiting for client handshake...\n";
 	}
 
 	//Create client
@@ -71,6 +74,8 @@ int _tmain(int argc, _TCHAR* argv[])
 
 		//Send some data
 		sendData("Hello there");
+
+		std::cout << "Sent handshake\n";
 	}
 	 
 	//Program loop
@@ -81,8 +86,8 @@ int _tmain(int argc, _TCHAR* argv[])
 		if (success) {
 			std::cout << "\nRemote: " << event.packet->data;
 			std::cout << "\nLocal: ";
-			char* message = "";
-			std::cin >> message;
+			std::string message;
+			std::getline(std::cin,message);
 			sendData(message);
 		}
 	}
@@ -129,9 +134,9 @@ void connectServer() {
 }
 
 //Sending data
-void sendData(char* message) {
+void sendData(std::string message) {
 	/* Create a reliable packet of size 7 containing "packet\0" */
-	ENetPacket * packet = enet_packet_create (message, strlen (message) + 1, ENET_PACKET_FLAG_RELIABLE);
+	ENetPacket * packet = enet_packet_create (message.c_str(), strlen (message.c_str()) + 1, ENET_PACKET_FLAG_RELIABLE);
 	/* Extend the packet so and append the string "foo", so it now */
 	/* contains "packetfoo\0"                                      */
 	//enet_packet_resize (packet, strlen ("packetfoo") + 1);
