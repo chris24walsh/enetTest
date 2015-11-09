@@ -30,7 +30,6 @@ int _tmain(int argc, _TCHAR* argv[])
 		
 		//Create server
 		ENetHost * server;
-		ENetHost * client;
 		ENetAddress address;
 		enet_address_set_host(&address, "localhost"); //use localhost
 		address.port = 1234;
@@ -46,13 +45,45 @@ int _tmain(int argc, _TCHAR* argv[])
 		//Wait for connections...
 		while(true) {
 			ENetEvent event;
-			if (enet_host_service(server, &event, 0) && event.type == ENET_EVENT_TYPE_CONNECT) { //Non-blocking check for connection
-				cout << "Client has connected." << endl;
-				_getch();
+			/* Wait up to 1000 milliseconds for an event. */
+			while (enet_host_service (server, & event, 1000) > 0)
+			{
+				switch (event.type)
+				{
+				case ENET_EVENT_TYPE_CONNECT:
+					printf ("A new client connected from %x:%u.\n", 
+							event.peer -> address.host,
+							event.peer -> address.port);
+					/* Store any relevant client information here. */
+					event.peer -> data = "Client information";
+					break;
+				case ENET_EVENT_TYPE_RECEIVE:
+					printf ("A packet of length %u containing %s was received from %s on channel %u.\n",
+							event.packet -> dataLength,
+							event.packet -> data,
+							event.peer -> data,
+							event.channelID);
+					/* Clean up the packet now that we're done using it. */
+					enet_packet_destroy (event.packet);
+        
+					break;
+       
+				case ENET_EVENT_TYPE_DISCONNECT:
+					printf ("%s disconnected.\n", event.peer -> data);
+					/* Reset the peer's client information. */
+					event.peer -> data = NULL;
+				}
 			}
+			/*ENetPacket * packet;
+			/string message = "test";
+			//getline(cin, message);
+			packet = enet_packet_create(message.c_str(), strlen(message.c_str())+1, 1);
+			enet_peer_send(peer, 0, packet);
+			ENetEvent event;
 			if (enet_host_service(server, &event, 0)) {// && event.type == ENET_EVENT_TYPE_RECEIVE) { //Non-blocking check for data
+				cout << "Packet received" << endl;
 				cout << (char*)event.packet->data;
-			}
+			}*/
 		}
 	}
 
@@ -69,7 +100,6 @@ int _tmain(int argc, _TCHAR* argv[])
 		atexit (enet_deinitialize); //deinitialise upon program exit
 		
 		//Create client
-		ENetHost * server;
 		ENetHost * client;
 		ENetPeer * peer;
 		ENetAddress address;
@@ -98,15 +128,13 @@ int _tmain(int argc, _TCHAR* argv[])
 			event.type == ENET_EVENT_TYPE_CONNECT)
 		{
 			cout << "Connection to server succeeded." << endl;
+			ENetPacket * packet;
+			string message = "test";
+			//getline(cin, message);
+			packet = enet_packet_create(message.c_str(), strlen(message.c_str())+1, 1);
+			int success = enet_peer_send(peer, 0, packet);
+			cout << success << endl;
 			_getch();
-			//Chat loop
-			while(true) {
-				ENetPacket * packet;
-				string message;
-				getline(cin, message);
-				packet = enet_packet_create(message.c_str(), strlen(message.c_str())+1, 1);
-				enet_peer_send(peer, 0, packet);
-			}
 		}
 		else
 		{
