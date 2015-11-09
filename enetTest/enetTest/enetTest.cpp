@@ -5,6 +5,7 @@
 #include <iostream>
 #include <conio.h>
 #include <enet\enet.h>
+#include <string>
 
 using namespace std;
 
@@ -15,6 +16,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	int choice;
 	cin >> choice;
 
+	//Server
 	if (choice==1) {
 
 		//Initialise the library
@@ -30,7 +32,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		ENetHost * server;
 		ENetHost * client;
 		ENetAddress address;
-		address.host = ENET_HOST_ANY; //use localhost
+		enet_address_set_host(&address, "localhost"); //use localhost
 		address.port = 1234;
 		server = enet_host_create (& address, 32, 2, 0, 0);
 		if (server == NULL) {
@@ -48,9 +50,13 @@ int _tmain(int argc, _TCHAR* argv[])
 				cout << "Client has connected." << endl;
 				_getch();
 			}
+			if (enet_host_service(server, &event, 0)) {// && event.type == ENET_EVENT_TYPE_RECEIVE) { //Non-blocking check for data
+				cout << (char*)event.packet->data;
+			}
 		}
 	}
 
+	//Client
 	if (choice==2) {
 
 		//Initialise the library
@@ -67,7 +73,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		ENetHost * client;
 		ENetPeer * peer;
 		ENetAddress address;
-		address.host = ENET_HOST_ANY; //use localhost
+		enet_address_set_host(&address, "localhost"); //use localhost
 		address.port = 1234;
 		client = enet_host_create(NULL, 1, 1, 0, 0);
 		if (client == NULL) {
@@ -93,6 +99,14 @@ int _tmain(int argc, _TCHAR* argv[])
 		{
 			cout << "Connection to server succeeded." << endl;
 			_getch();
+			//Chat loop
+			while(true) {
+				ENetPacket * packet;
+				string message;
+				getline(cin, message);
+				packet = enet_packet_create(message.c_str(), strlen(message.c_str())+1, 1);
+				enet_peer_send(peer, 0, packet);
+			}
 		}
 		else
 		{
