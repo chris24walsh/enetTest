@@ -13,11 +13,13 @@ int main(int argc, char **argv)
 	cout << "Enter 1(server) or 2(client)" << endl;
 	int choice;
 	cin >> choice;
+	cout << endl << endl;
 
 	if (choice==1) {
 		ENetAddress address;
 		ENetHost *server;
 		ENetEvent event;
+		ENetPeer *peer = NULL;
 		int eventStatus;
 
 		// a. Initialize enet
@@ -39,12 +41,15 @@ int main(int argc, char **argv)
 			fprintf(stderr, "An error occured while trying to create an ENet server host\n");
 			exit(EXIT_FAILURE);
 		}
+		else cout << "Server up and running (type 'q' to quit)" << endl << endl;
 
 		// c. Connect and user service
 		eventStatus = 1;
+		enet_uint32 wait = 60000;
+		bool first = true;
 
 		while (1) {
-			eventStatus = enet_host_service(server, &event, 50000);
+			eventStatus = enet_host_service(server, &event, wait);
 
 			// If we had some event that interested us
 			if (eventStatus > 0) {
@@ -52,6 +57,8 @@ int main(int argc, char **argv)
 					case ENET_EVENT_TYPE_CONNECT:
 						printf("(Server) We got a new connection from %x\n",
 								event.peer->address.host);
+						peer = event.peer;
+						wait = 0;
 						break;
 
 					case ENET_EVENT_TYPE_RECEIVE:
@@ -71,12 +78,16 @@ int main(int argc, char **argv)
 
 			printf("Server> ");
 			string message = "hello";
+			if (first) {
+				getline(cin,message);
+				first = false;
+			}
 			getline(cin,message);
-			//_getch();
+			if (message=="q") return 0;
 
 			if (strlen(message.c_str()) > 0) {
 				ENetPacket *packet = enet_packet_create(message.c_str(), strlen(message.c_str()) + 1, ENET_PACKET_FLAG_RELIABLE);
-				enet_peer_send(event.peer, 0, packet);
+				enet_peer_send(peer, 0, packet);
 			}
 		}
 	}
@@ -85,7 +96,7 @@ int main(int argc, char **argv)
 		ENetAddress address;
 		ENetHost *client;
 		ENetPeer *peer;
-		char message[1024];
+		//char message[1024];
 		ENetEvent event;
 		int eventStatus;
 
@@ -117,7 +128,10 @@ int main(int argc, char **argv)
 		}
 
 		eventStatus = 1;
+		bool first = true;
+		int wait = 1000;
 
+		
 		while (1) {
 			eventStatus = enet_host_service(client, &event, 0);
 
@@ -127,6 +141,7 @@ int main(int argc, char **argv)
 					case ENET_EVENT_TYPE_CONNECT:
 						printf("(Client) We got a new connection from %x\n",
 								event.peer->address.host);
+						wait = 0;
 						break;
 
 					case ENET_EVENT_TYPE_RECEIVE:
@@ -146,11 +161,15 @@ int main(int argc, char **argv)
 			}
 
 			printf("Client> ");
-			string message = "hello";
+			string message;
+			if (first) {
+				getline(cin,message);
+				first = false;
+			}
 			getline(cin,message);
-			//_getch();
+			if (message=="q") return 0;
 
-			if (strlen(message.c_str()) > 0) {
+			if (strlen(message.c_str()) > 0 && peer) {
 				ENetPacket *packet = enet_packet_create(message.c_str(), strlen(message.c_str()) + 1, ENET_PACKET_FLAG_RELIABLE);
 				enet_peer_send(peer, 0, packet);
 			}
