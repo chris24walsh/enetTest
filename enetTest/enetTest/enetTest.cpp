@@ -55,7 +55,7 @@ int main(int argc, char **argv)
 						break;
 
 					case ENET_EVENT_TYPE_RECEIVE:
-						printf("(Server) Message from client : %s\n", event.packet->data);
+						printf("(Client>%s\n", event.packet->data);
 						// Lets broadcast this message to all
 						//enet_host_broadcast(server, 0, event.packet);
 						break;
@@ -67,6 +67,16 @@ int main(int argc, char **argv)
 						break;
 
 				}
+			}
+
+			printf("Server> ");
+			string message = "hello";
+			getline(cin,message);
+			//_getch();
+
+			if (strlen(message.c_str()) > 0) {
+				ENetPacket *packet = enet_packet_create(message.c_str(), strlen(message.c_str()) + 1, ENET_PACKET_FLAG_RELIABLE);
+				enet_peer_send(event.peer, 0, packet);
 			}
 		}
 	}
@@ -120,7 +130,8 @@ int main(int argc, char **argv)
 						break;
 
 					case ENET_EVENT_TYPE_RECEIVE:
-						printf("(Client) Message from server : %s\n", event.packet->data);
+						//printf("(Client) Message from server : %s\n", event.packet->data);
+						printf("Server>%s\n", event.packet->data);
 						// Lets broadcast this message to all
 						// enet_host_broadcast(client, 0, event.packet);
 						enet_packet_destroy(event.packet);
@@ -134,7 +145,7 @@ int main(int argc, char **argv)
 				}
 			}
 
-			printf("Say > ");
+			printf("Client> ");
 			string message = "hello";
 			getline(cin,message);
 			//_getch();
