@@ -1,3 +1,5 @@
+// server.c
+
 #include "stdafx.h"
 #include <enet/enet.h>
 #include <stdio.h>
@@ -8,10 +10,9 @@ using namespace std;
 
 int main(int argc, char **argv)
 {
-	cout << "Enter 1(server) or 2(client): ";
+	cout << "Enter 1(server) or 2(client)" << endl;
 	int choice;
 	cin >> choice;
-	cout << endl << endl;
 
 	if (choice==1) {
 		ENetAddress address;
@@ -41,10 +42,9 @@ int main(int argc, char **argv)
 
 		// c. Connect and user service
 		eventStatus = 1;
-		bool first = true;
 
 		while (1) {
-			eventStatus = enet_host_service(server, &event, 0);
+			eventStatus = enet_host_service(server, &event, 50000);
 
 			// If we had some event that interested us
 			if (eventStatus > 0) {
@@ -69,16 +69,12 @@ int main(int argc, char **argv)
 				}
 			}
 
-			cout << "Server> ";
-			string message;
-			if (first) {
-				getline(cin,message);
-				first = false;
-			}
+			printf("Server> ");
+			string message = "hello";
 			getline(cin,message);
-			if (message=="quit") return 0;
+			//_getch();
 
-			if (strlen(message.c_str()) > 0 && event.peer) {
+			if (strlen(message.c_str()) > 0) {
 				ENetPacket *packet = enet_packet_create(message.c_str(), strlen(message.c_str()) + 1, ENET_PACKET_FLAG_RELIABLE);
 				enet_peer_send(event.peer, 0, packet);
 			}
@@ -89,7 +85,7 @@ int main(int argc, char **argv)
 		ENetAddress address;
 		ENetHost *client;
 		ENetPeer *peer;
-		//char message[1024];
+		char message[1024];
 		ENetEvent event;
 		int eventStatus;
 
@@ -109,11 +105,7 @@ int main(int argc, char **argv)
 			exit(EXIT_FAILURE);
 		}
 
-		cout << "Enter IP address of the server: ";
-		string IP;
-		getline(cin,IP);
-		cout << endl << endl;
-		enet_address_set_host(&address, IP.c_str());
+		enet_address_set_host(&address, "localhost");
 		address.port = 1234;
 
 		// c. Connect and user service
@@ -125,7 +117,6 @@ int main(int argc, char **argv)
 		}
 
 		eventStatus = 1;
-		bool first = true;
 
 		while (1) {
 			eventStatus = enet_host_service(client, &event, 0);
@@ -156,12 +147,8 @@ int main(int argc, char **argv)
 
 			printf("Client> ");
 			string message = "hello";
-			if (first) {
-				getline(cin,message);
-				first = false;
-			}
 			getline(cin,message);
-			if (message=="quit") return 0;
+			//_getch();
 
 			if (strlen(message.c_str()) > 0) {
 				ENetPacket *packet = enet_packet_create(message.c_str(), strlen(message.c_str()) + 1, ENET_PACKET_FLAG_RELIABLE);
