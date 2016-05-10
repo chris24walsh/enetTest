@@ -116,7 +116,7 @@ int main(int argc, char **argv)
 			exit(EXIT_FAILURE);
 		}
 
-		enet_address_set_host(&address, "localhost");
+		enet_address_set_host(&address, "192.168.8.101");
 		address.port = 1234;
 
 		// c. Connect and user service
